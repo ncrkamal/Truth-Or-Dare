@@ -1,0 +1,101 @@
+<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><title>Truth or Dare</title>
+<style>
+:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);--bg:#fff5f7;--fg:#2a1a1f;--card:#fff;--ac:#d6336c;--mu:#8a7079}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#1a1216;--fg:#f6e9ee;--card:#291b21;--ac:#ff6b9d;--mu:#b39aa4}}
+:root[data-theme="dark"]{--bg:#1a1216;--fg:#f6e9ee;--card:#291b21;--ac:#ff6b9d;--mu:#b39aa4}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font:16px system-ui,sans-serif}
+#app{max-width:520px;margin:0 auto;padding:16px}
+.c{background:var(--card);border-radius:14px;padding:14px;margin:10px 0;box-shadow:0 1px 4px #0002}
+button,select,input{font:inherit;padding:10px 12px;border-radius:10px;border:1px solid var(--mu);background:var(--card);color:var(--fg);max-width:100%}
+button{background:var(--ac);color:#fff;border:0;cursor:pointer;margin:3px}button.s{background:var(--card);color:var(--fg);border:1px solid var(--mu);display:block;width:100%;text-align:start}
+button:disabled{opacity:.5}.big{font-size:20px;padding:16px 26px}.mu{color:var(--mu);font-size:14px}
+#log{max-height:260px;overflow-y:auto}.m{margin:4px 0;padding:8px 10px;border-radius:10px;background:var(--bg);max-width:85%}.m.me{margin-inline-start:auto;background:var(--ac);color:#fff}
+h1{margin:6px 0}.row{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+</style></head><body><div id="app"></div>
+<script>
+const T={
+en:{title:"Truth or Dare",create:"Create room",join:"Join",code:"Room code",lang:"Language",level:"Level",int:"Intensity",nick:"Nickname for your partner",start:"Start",wait:"Waiting for your partner…",truth:"Truth",dare:"Dare",pick:"Your turn: choose",waitPick:"is choosing…",give:"Pick a suggestion or write your own",more:"More ideas",send:"Send",done:"Challenge done",round:"Round",hist:"History",msg:"Message…",timer:"Timer (min)",think:"Thinking…",share:"Share this code",you:"You",partner:"Partner",lv:{romantic:"Romantic",fun:"Spontaneous / fun",met:"Recently met",lovers:"Lovers",friends:"Friends"},it:["Mild","Medium","Spicy"],noroom:"Live rooms are not available in this view."},
+ar:{title:"صراحة أم تحدٍّ",create:"إنشاء غرفة",join:"انضمام",code:"رمز الغرفة",lang:"اللغة",level:"المستوى",int:"الحدة",nick:"لقب لشريكك",start:"ابدأ",wait:"في انتظار شريكك…",truth:"صراحة",dare:"تحدٍّ",pick:"دورك: اختر",waitPick:"يختار…",give:"اختر اقتراحًا أو اكتب بنفسك",more:"أفكار أخرى",send:"إرسال",done:"تم التحدي",round:"الجولة",hist:"السجل",msg:"رسالة…",timer:"مؤقت (دقيقة)",think:"جارٍ التفكير…",share:"شارك هذا الرمز",you:"أنت",partner:"الشريك",lv:{romantic:"رومانسي",fun:"عفوي / مرح",met:"تعارفنا حديثًا",lovers:"حبيبان",friends:"أصدقاء"},it:["خفيف","متوسط","جريء"],noroom:"الغرف المباشرة غير متاحة هنا."},
+fr:{title:"Action ou Vérité",create:"Créer une salle",join:"Rejoindre",code:"Code de la salle",lang:"Langue",level:"Niveau",int:"Intensité",nick:"Surnom pour ton partenaire",start:"Commencer",wait:"En attente de ton partenaire…",truth:"Vérité",dare:"Action",pick:"À toi de choisir",waitPick:"choisit…",give:"Choisis une suggestion ou écris la tienne",more:"Plus d'idées",send:"Envoyer",done:"Défi terminé",round:"Tour",hist:"Historique",msg:"Message…",timer:"Minuteur (min)",think:"Réflexion…",share:"Partage ce code",you:"Toi",partner:"Partenaire",lv:{romantic:"Romantique",fun:"Spontané / fun",met:"Rencontre récente",lovers:"Amoureux",friends:"Amis"},it:["Doux","Moyen","Épicé"],noroom:"Les salles en direct ne sont pas disponibles ici."},
+es:{title:"Verdad o Reto",create:"Crear sala",join:"Unirse",code:"Código de sala",lang:"Idioma",level:"Nivel",int:"Intensidad",nick:"Apodo para tu pareja",start:"Empezar",wait:"Esperando a tu pareja…",truth:"Verdad",dare:"Reto",pick:"Tu turno: elige",waitPick:"está eligiendo…",give:"Elige una sugerencia o escribe la tuya",more:"Más ideas",send:"Enviar",done:"Reto cumplido",round:"Ronda",hist:"Historial",msg:"Mensaje…",timer:"Temporizador (min)",think:"Pensando…",share:"Comparte este código",you:"Tú",partner:"Pareja",lv:{romantic:"Romántico",fun:"Espontáneo / divertido",met:"Recién conocidos",lovers:"Enamorados",friends:"Amigos"},it:["Suave","Medio","Picante"],noroom:"Las salas en vivo no están disponibles aquí."}};
+const LN={en:"English",ar:"العربية"};
+const FB={truth:["What's your most embarrassing moment?","What's a small thing that always makes you smile?","What's the best trip you ever took?","What did you first think when we met?"],dare:["Send a voice message singing one line of any song.","Describe your day using only emojis.","Write a compliment for me in 10 words.","Tell a joke and make me laugh."]};
+let R0=null,R=null,S={phase:"home"},lang="en",msgs=[],hist=[],sug=null,draft="",mins=0,code="",callMe="",callP="",lvl="romantic",it=1,busy=false;
+const $=s=>document.querySelector(s),t=k=>(T[lang]||T.en)[k];
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const me=()=>R&&R.peers().find(p=>p.isMe&&p.sameTab)?.peer;
+const others=()=>R?R.peers().filter(p=>!p.isMe):[];
+const myTurnPick=()=>S.chooser===me();
+R0={join:name=>new Promise((ok,no)=>{
+ const ws=new WebSocket((location.protocol==="https:"?"wss://":"ws://")+location.host+"/ws?room="+name);
+ let my=null,ids=[],L={},PL=[];
+ const mk=id=>({peer:id,isMe:id===my,sameTab:id===my});
+ const o={peers:()=>ids.map(mk),on:(t,f)=>{(L[t]=L[t]||[]).push(f)},onPeers:f=>PL.push(f),emit:(t,d)=>{if(ws.readyState===1)ws.send(JSON.stringify({t,d}))}};
+ ws.onmessage=e=>{const m=JSON.parse(e.data);
+  if(m.type==="hello"){my=m.id;ids=[my];ok(o)}
+  else if(m.type==="peers"){ids=m.ids;PL.forEach(f=>f({joined:m.joined.map(mk)}))}
+  else if(m.type==="ev")(L[m.t]||[]).forEach(f=>f({...mk(m.from),data:m.d}))};
+ ws.onclose=()=>{if(!my)no();else{ids=[my];PL.forEach(f=>f({joined:[]}))}}
+})};
+render();if(location.hash.length>1)enter(location.hash.slice(1),false);
+async function enter(c,host){
+ if(!R0)return;code=c.toLowerCase().replace(/[^a-z0-9]/g,"");if(!code)return;
+ try{R=await R0.join("td-"+code)}catch(e){alert("Room unavailable or full");return}
+ R.on("st",m=>{if(!m.sameTab)apply(m.data)});
+ R.on("nk",m=>{if(!m.isMe){callMe=String(m.data.name||"").slice(0,30);render()}});
+ R.on("msg",m=>{msgs.push({mine:m.isMe,text:String(m.data.text||"").slice(0,500)});addMsg()});
+ R.onPeers(ch=>{if(ch.joined.some(p=>!p.isMe)){if(S.host&&S.host===me())R.emit("st",S);if(callP)R.emit("nk",{name:callP})}render()});
+ if(host){S={phase:"setup",host:me(),lang,level:lvl,intensity:it,round:1};R.emit("st",S)}
+ render()}
+function apply(d){
+ if(d.last&&d.round>(S.round||0)){hist.push(d.last);msgs=[]}
+ S=d;if(d.lang)lang=d.lang;
+ if(S.phase==="suggest"&&!myTurnPick())suggest();
+ render()}
+function go(p){S={...S,...p};R.emit("st",S);render()}
+function begin(){go({phase:"choose",chooser:me(),lang,level:lvl,intensity:it})}
+function choose(k){go({phase:"suggest",kind:k})}
+let DATA=null;
+async function suggest(){
+ sug=null;render();
+ try{if(!DATA)DATA=await(await fetch("/data.json")).json();
+  const pool=(DATA[S.lang]||DATA.en)[S.kind][S.level==="lovers"?"lovers"+S.intensity:S.level];
+  sug=[...pool].sort(()=>Math.random()-.5).slice(0,6)}catch(e){sug=FB[S.kind]}
+ render()}
+function sendCh(){const v=draft.trim();if(!v)return;const m=+mins;draft="";go({phase:"play",text:v,endAt:m?Date.now()+m*60000:0})}
+function finish(){hist.push({kind:S.kind,text:S.text});msgs=[];go({phase:"choose",chooser:S.chooser===me()?others()[0]?.peer:me(),round:S.round+1,last:{kind:S.kind,text:S.text},endAt:0})}
+function say(){const i=$("#mi");if(!i||!i.value.trim())return;R.emit("msg",{text:i.value.trim()});i.value=""}
+function addMsg(){const l=$("#log");if(!l){render();return}l.innerHTML=logHtml();l.scrollTop=1e9}
+const logHtml=()=>msgs.map(m=>`<div class="m ${m.mine?"me":""}">${esc(m.text)}</div>`).join("");
+function nick(v){callP=v.slice(0,30);if(R)R.emit("nk",{name:callP})}
+const nm=mine=>mine?(callMe||t("you")):(callP||t("partner"));
+function render(){
+ const A=$("#app");document.documentElement.dir=lang==="ar"?"rtl":"ltr";
+ let h=`<h1>🎲 ${t("title")}</h1>`;
+ if(!R0)h+=`<div class="c">${t("noroom")}</div>`;
+ else if(!R){
+  h+=`<div class="c"><label>${t("lang")}<br><select onchange="lang=this.value;render()">${Object.keys(LN).map(k=>`<option value="${k}" ${k===lang?"selected":""}>${LN[k]}</option>`).join("")}</select></label><p><button onclick="enter(Math.random().toString(36).slice(2,7),true)">${t("create")}</button></p><div class="row"><input id="jc" placeholder="${t("code")}" size="8"><button onclick="enter($('#jc').value,false)">${t("join")}</button></div></div>`}
+ else{
+  const two=others().length>0,st=S.phase;
+  h+=`<div class="mu">${t("code")}: <b>${esc(code)}</b> · ${t("round")} ${S.round||1}</div>`;
+  if(st==="setup"){
+   h+=`<div class="c"><p>${t("share")}: <b>${esc(code)}</b><br><span class="mu">${esc(location.origin+"/#"+code)}</span></p><label>${t("nick")}<br><input value="${esc(callP)}" oninput="nick(this.value)"></label>`;
+   if(S.host===me()){h+=`<p><label>${t("level")}<br><select onchange="lvl=this.value;render()">${Object.keys(T.en.lv).map(k=>`<option value="${k}" ${k===lvl?"selected":""}>${t("lv")[k]}</option>`).join("")}</select></label></p>`;
+    if(lvl==="lovers")h+=`<p><label>${t("int")}<br><select onchange="it=+this.value">${t("it").map((x,i)=>`<option value="${i}" ${i===it?"selected":""}>${x}</option>`).join("")}</select></label></p>`;
+    h+=`<button class="big" ${two?"":"disabled"} onclick="begin()">${two?t("start"):t("wait")}</button>`}
+   else h+=`<p class="mu">${t("wait")}</p>`;h+=`</div>`}
+  else if(st==="choose"){
+   h+=`<div class="c"><p><b>${t("lv")[S.level]}</b></p>`+(myTurnPick()?`<p>${t("pick")}</p><button class="big" onclick="choose('truth')">${t("truth")}</button><button class="big" onclick="choose('dare')">${t("dare")}</button>`:`<p class="mu">${esc(nm(false))} ${t("waitPick")}</p>`)+`</div>`}
+  else if(st==="suggest"){
+   h+=`<div class="c"><p><b>${t(S.kind)}</b></p>`;
+   if(myTurnPick())h+=`<p class="mu">${esc(nm(false))}…</p>`;
+   else{h+=`<p>${t("give")}</p>`+(sug?sug.map((x,i)=>`<button class="s" onclick="draft=sug[${i}];render()">${esc(x)}</button>`).join(""):`<p class="mu">${t("think")}</p>`)+
+    `<button class="s" onclick="suggest()">↻ ${t("more")}</button><p><input id="dr" style="width:100%" value="${esc(draft)}" oninput="draft=this.value"></p><div class="row"><label>${t("timer")} <select onchange="mins=this.value">${[0,1,3,5].map(x=>`<option ${x==mins?"selected":""}>${x}</option>`).join("")}</select></label><button onclick="sendCh()">${t("send")}</button></div>`}
+   h+=`</div>`}
+  else if(st==="play"){
+   h+=`<div class="c"><p class="mu">${t(S.kind)}</p><p style="font-size:20px"><b>${esc(S.text)}</b></p>${S.endAt?`<p id="tm" class="mu"></p>`:""}<div id="log">${logHtml()}</div><div class="row"><input id="mi" placeholder="${t("msg")}" style="flex:1" onkeydown="if(event.key==='Enter')say()"><button onclick="say()">${t("send")}</button></div>`+(!myTurnPick()?`<p><button class="big" onclick="finish()">✓ ${t("done")}</button></p>`:"")+`</div>`}
+  if(hist.length)h+=`<div class="c"><b>${t("hist")}</b>`+hist.map((x,i)=>`<div class="mu">${i+1}. ${t(x.kind)}: ${esc(x.text)}</div>`).join("")+`</div>`}
+ A.innerHTML=h;const l=$("#log");if(l)l.scrollTop=1e9}
+setInterval(()=>{const e=$("#tm");if(e&&S.endAt){const s=Math.max(0,Math.round((S.endAt-Date.now())/1e3));e.textContent="⏱ "+Math.floor(s/60)+":"+String(s%60).padStart(2,"0")}},1000);
+render();
+</script></body></html>
