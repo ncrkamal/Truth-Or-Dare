@@ -13,6 +13,8 @@ button:disabled{opacity:.5}.big{font-size:20px;padding:16px 26px}.mu{color:var(-
 h1{margin:6px 0}.row{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
 </style></head><body><div id="app"></div>
 <script>
+function setLang(v){lang=v;render()}
+function hostLang(v){lang=v;go({lang:v})}
 const T={
 en:{title:"Truth or Dare",create:"Create room",join:"Join",code:"Room code",lang:"Language",level:"Level",int:"Intensity",nick:"Nickname for your partner",start:"Start",wait:"Waiting for your partner…",truth:"Truth",dare:"Dare",pick:"Your turn: choose",waitPick:"is choosing…",give:"Pick a suggestion or write your own",more:"More ideas",send:"Send",done:"Challenge done",round:"Round",hist:"History",msg:"Message…",timer:"Timer (min)",think:"Thinking…",share:"Share this code",you:"You",partner:"Partner",lv:{romantic:"Romantic",fun:"Spontaneous / fun",met:"Recently met",lovers:"Lovers",friends:"Friends"},it:["Mild","Medium","Spicy"],noroom:"Live rooms are not available in this view."},
 ar:{title:"صراحة أم تحدٍّ",create:"إنشاء غرفة",join:"انضمام",code:"رمز الغرفة",lang:"اللغة",level:"المستوى",int:"الحدة",nick:"لقب لشريكك",start:"ابدأ",wait:"في انتظار شريكك…",truth:"صراحة",dare:"تحدٍّ",pick:"دورك: اختر",waitPick:"يختار…",give:"اختر اقتراحًا أو اكتب بنفسك",more:"أفكار أخرى",send:"إرسال",done:"تم التحدي",round:"الجولة",hist:"السجل",msg:"رسالة…",timer:"مؤقت (دقيقة)",think:"جارٍ التفكير…",share:"شارك هذا الرمز",you:"أنت",partner:"الشريك",lv:{romantic:"رومانسي",fun:"عفوي / مرح",met:"تعارفنا حديثًا",lovers:"حبيبان",friends:"أصدقاء"},it:["خفيف","متوسط","جريء"],noroom:"الغرف المباشرة غير متاحة هنا."},
@@ -74,13 +76,13 @@ function render(){
  let h=`<h1>🎲 ${t("title")}</h1>`;
  if(!R0)h+=`<div class="c">${t("noroom")}</div>`;
  else if(!R){
-  h+=`<div class="c"><label>${t("lang")}<br><select onchange="lang=this.value;render()">${Object.keys(LN).map(k=>`<option value="${k}" ${k===lang?"selected":""}>${LN[k]}</option>`).join("")}</select></label><p><button onclick="enter(Math.random().toString(36).slice(2,7),true)">${t("create")}</button></p><div class="row"><input id="jc" placeholder="${t("code")}" size="8"><button onclick="enter($('#jc').value,false)">${t("join")}</button></div></div>`}
+  h+=`<div class="c"><label>${t("lang")}<br><select onchange="setLang(this.value)">${Object.keys(LN).map(k=>`<option value="${k}" ${k===lang?"selected":""}>${LN[k]}</option>`).join("")}</select></label><p><button onclick="enter(Math.random().toString(36).slice(2,7),true)">${t("create")}</button></p><div class="row"><input id="jc" placeholder="${t("code")}" size="8"><button onclick="enter($('#jc').value,false)">${t("join")}</button></div></div>`}
  else{
   const two=others().length>0,st=S.phase;
   h+=`<div class="mu">${t("code")}: <b>${esc(code)}</b> · ${t("round")} ${S.round||1}</div>`;
   if(st==="setup"){
    h+=`<div class="c"><p>${t("share")}: <b>${esc(code)}</b><br><span class="mu">${esc(location.origin+"/#"+code)}</span></p><label>${t("nick")}<br><input value="${esc(callP)}" oninput="nick(this.value)"></label>`;
-   if(S.host===me()){h+=`<p><label>${t("level")}<br><select onchange="lvl=this.value;render()">${Object.keys(T.en.lv).map(k=>`<option value="${k}" ${k===lvl?"selected":""}>${t("lv")[k]}</option>`).join("")}</select></label></p>`;
+   if(S.host===me()){h+=`<p><label>${t("lang")}<br><select onchange="hostLang(this.value)">${Object.keys(LN).map(k=>`<option value="${k}" ${k===lang?"selected":""}>${LN[k]}</option>`).join("")}</select></label></p>`;h+=`<p><label>${t("level")}<br><select onchange="lvl=this.value;render()">${Object.keys(T.en.lv).map(k=>`<option value="${k}" ${k===lvl?"selected":""}>${t("lv")[k]}</option>`).join("")}</select></label></p>`;
     if(lvl==="lovers")h+=`<p><label>${t("int")}<br><select onchange="it=+this.value">${t("it").map((x,i)=>`<option value="${i}" ${i===it?"selected":""}>${x}</option>`).join("")}</select></label></p>`;
     h+=`<button class="big" ${two?"":"disabled"} onclick="begin()">${two?t("start"):t("wait")}</button>`}
    else h+=`<p class="mu">${t("wait")}</p>`;h+=`</div>`}
